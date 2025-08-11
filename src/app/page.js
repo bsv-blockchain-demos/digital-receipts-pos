@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import QRCode from "react-qr-code";
 import { useZxing } from "react-zxing";
+import Link from "next/link";
 
 export default function Home() {
   const [receiptData, setReceiptData] = useState(null);
@@ -21,9 +22,9 @@ export default function Home() {
   });
 
   async function createReceipt() {
-    const { dummyReceipt } = await fetch("http://localhost:8080/create-receipt").then((res) => res.json());
+    const { encryptedReceipt, symkeyString, timestamp, txid } = await fetch("http://localhost:8080/create-receipt").then((res) => res.json());
 
-    setReceiptData(dummyReceipt);
+    setReceiptData({ encryptedReceipt, symkeyString, timestamp, txid });
     setScanResult(null);
   }
 
@@ -31,7 +32,16 @@ export default function Home() {
     if (!scanResult) return;
     // TODO: On successful scan save the data on device
     console.log("Scan result:", scanResult);
+    fetch("http://localhost:8080/save-receipt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ scanResult }),
+    });
   }, [scanResult]);
+
+  // TODO: add save button just for testing
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
@@ -42,17 +52,26 @@ export default function Home() {
           <p className="text-slate-400">Generate QR codes and scan digital receipts with ease</p>
         </div>
 
-        {/* Action Button */}
-        <div className="flex justify-center mb-8">
-          <button 
-            onClick={createReceipt} 
-            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3"
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+          <button
+            onClick={createReceipt}
+            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3 justify-center"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             {receiptData ? "Create New Receipt" : "Create Receipt"}
           </button>
+
+          <Link href="/mydigitalreceipts">
+            <button className="bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3 justify-center border border-slate-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              My Digital Receipts
+            </button>
+          </Link>
         </div>
 
         {/* QR Code Section */}
@@ -66,10 +85,17 @@ export default function Home() {
                 Your Digital Receipt QR Code
               </h2>
               <div className="bg-white p-6 rounded-2xl shadow-lg inline-block mb-6">
-                <QRCode value={receiptData} size={256} />
+                <QRCode
+                  value={JSON.stringify({
+                    txid: receiptData.txid,
+                    symkeyString: receiptData.symkeyString,
+                    timestamp: receiptData.timestamp
+                  })}
+                  size={256}
+                />
               </div>
               <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-600">
-                <pre className="text-green-400 text-sm font-mono overflow-x-auto">{receiptData}</pre>
+                <pre className="text-green-400 text-sm font-mono overflow-x-auto">{JSON.stringify(receiptData)}</pre>
               </div>
             </div>
           </div>
@@ -78,8 +104,8 @@ export default function Home() {
         {/* Scan Button */}
         {!scanning && (
           <div className="flex justify-center mb-8">
-            <button 
-              onClick={() => setScanning(true)} 
+            <button
+              onClick={() => setScanning(true)}
               className="bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3 border border-slate-600"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,8 +132,8 @@ export default function Home() {
                   className="w-full max-w-md mx-auto rounded-xl shadow-lg"
                 />
               </div>
-              <button 
-                onClick={() => setScanning(false)} 
+              <button
+                onClick={() => setScanning(false)}
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 mx-auto"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

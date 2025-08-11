@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { WalletClient, PrivateKey, KeyDeriver } from '@bsv/sdk'
+import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey } from '@bsv/sdk'
 import { WalletStorageManager, Services, Wallet, StorageClient } from '@bsv/wallet-toolbox-client'
 import dotenv from 'dotenv'
 import crypto from 'crypto'
@@ -18,26 +18,49 @@ console.log("WALLET_STORAGE_URL", WALLET_STORAGE_URL);
 app.use(cors());
 app.use(express.json());
 
-// Create receipt endpoint - migrated from Next.js API route
+// Create receipt endpoint
 app.get('/create-receipt', (req, res) => {
     const timestamp = new Date().toISOString();
     //const walletClient = createWalletClient(SERVER_PRIVATE_KEY, WALLET_STORAGE_URL, 'main');
 
+    // Any and all information that is needed to create a receipt
+    // Can be put into this JSON object
     const dummyReceipt = JSON.stringify({
         id: "123456",
         store: "My Store",
         timestamp: timestamp,
     });
 
-    // TODO: Encrypt dummyReceipt
+    // Encrypt dummyReceipt
+    const symmetricKey = SymmetricKey.fromRandom();
+    const symkeyString = symmetricKey.toString();
+    const encryptedReceipt = encryptJSON(dummyReceipt, symmetricKey);
 
-    // TODO: Put encrypted receipt data on blockchain
+    // Put encrypted receipt data on blockchain
     // const receiptTX = walletClient.createAction({
 
     // });
 
-    // TODO: Send back only the txid and decryption keyring
-    res.json({ dummyReceipt });
+    const txid = "123456"; // receiptTX.txid
+
+    // Send back only the txid and decryption keyring
+    res.json({ encryptedReceipt, symkeyString, timestamp, txid });
+});
+
+// Decrypt receipt endpoint
+app.get('/decrypt-receipt', (req, res) => {
+    const { txid, symkeyString } = req.query;
+    const encryptedReceipt = fetch(`http://localhost:8080/txid/${txid}`).then((res) => res.json()); //TODO arc taal or overlay
+    const symmetricKey = SymmetricKey.fromString(symkeyString);
+    const decryptedReceipt = decryptJSON(encryptedReceipt, symmetricKey);
+    res.json({ decryptedReceipt });
+});
+
+// Save receipt endpoint
+app.get('/save-receipt', (req, res) => {
+    const { encryptedReceipt, symkeyString, timestamp, txid } = req.query;
+    // TODO save encryptedReceipt and symkeyString to local storage
+    res.json({ success: true });
 });
 
 // Health check endpoint
@@ -67,4 +90,14 @@ const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
     await storage.addWalletStorageProvider(client)
     await storage.makeAvailable()
     return new WalletClient(wallet)
+}
+
+function encryptJSON(data, key) {
+    const jsonString = JSON.stringify(data);
+    return key.encrypt(jsonString);
+}
+
+function decryptJSON(encryptedData, key) {
+    const jsonString = key.decrypt(encryptedData, 'utf8');
+    return JSON.parse(jsonString);
 }
