@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey } from '@bsv/sdk'
+import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey, Script, Utils, LookupResolver, TopicBroadcaster, Transaction } from '@bsv/sdk'
 import { WalletStorageManager, Services, Wallet, StorageClient } from '@bsv/wallet-toolbox-client'
 import dotenv from 'dotenv'
 import crypto from 'crypto'
+dotenv.config();
+global.self = { crypto };
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -11,56 +13,64 @@ const PORT = process.env.PORT || 8080;
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const WALLET_STORAGE_URL = process.env.WALLET_STORAGE_URL;
 
+const overlay = new LookupResolver({
+    slapTrackers: ['https://overlay-us-1.bsvb.tech'],
+    additionalHosts: {
+        'ls_anytx': ['https://overlay-us-1.bsvb.tech']
+    }
+});
+
 console.log("SERVER_PRIVATE_KEY", SERVER_PRIVATE_KEY);
 console.log("WALLET_STORAGE_URL", WALLET_STORAGE_URL);
+
+const walletClient = await createWalletClient(SERVER_PRIVATE_KEY, WALLET_STORAGE_URL, 'main');
+console.log("walletClient", walletClient);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Create receipt endpoint
-app.get('/create-receipt', (req, res) => {
+app.post('/create-receipt', async (req, res) => {
+    const receiptData = req.body.receiptData;
+
     const timestamp = new Date().toISOString();
-    //const walletClient = createWalletClient(SERVER_PRIVATE_KEY, WALLET_STORAGE_URL, 'main');
+    let receiptTX;
+    let symkeyString;
+    try {
+        // Encrypt receipt data
+        const symmetricKey = SymmetricKey.fromRandom();
+        symkeyString = symmetricKey.toHex();
+        const encryptedReceipt = await encryptJSON(receiptData, symmetricKey);
+        const encryptedReceiptHex = Utils.toHex(Utils.toArray(encryptedReceipt));
 
-    // Any and all information that is needed to create a receipt
-    // Can be put into this JSON object
-    const dummyReceipt = JSON.stringify({
-        id: "123456",
-        store: "My Store",
-        timestamp: timestamp,
-    });
+        const lockingScript = Script.fromASM(`OP_FALSE OP_RETURN ${encryptedReceiptHex}`).toHex();
+        console.log("lockingScript", lockingScript);
 
-    // Encrypt dummyReceipt
-    const symmetricKey = SymmetricKey.fromRandom();
-    const symkeyString = symmetricKey.toString();
-    const encryptedReceipt = encryptJSON(dummyReceipt, symmetricKey);
+        // Put encrypted receipt data on blockchain
+        receiptTX = await walletClient.createAction({
+            description: "Receipt",
+            outputs: [
+                {
+                    outputDescription: "Receipt",
+                    satoshis: 1,
+                    lockingScript: lockingScript,
+                },
+            ],
+        });
 
-    // Put encrypted receipt data on blockchain
-    // const receiptTX = walletClient.createAction({
+        broadcastTransaction(receiptTX);
+    } catch (error) {
+        console.error("Error creating receipt:", error);
+        res.status(500).json({ error: "Failed to create receipt" });
+        return;
+    }
 
-    // });
-
-    const txid = "123456"; // receiptTX.txid
+    console.log("receiptTX", receiptTX);
+    const txid = receiptTX.txid;
 
     // Send back only the txid and decryption keyring
-    res.json({ encryptedReceipt, symkeyString, timestamp, txid });
-});
-
-// Decrypt receipt endpoint
-app.get('/decrypt-receipt', (req, res) => {
-    const { txid, symkeyString } = req.query;
-    const encryptedReceipt = fetch(`http://localhost:8080/txid/${txid}`).then((res) => res.json()); //TODO arc taal or overlay
-    const symmetricKey = SymmetricKey.fromString(symkeyString);
-    const decryptedReceipt = decryptJSON(encryptedReceipt, symmetricKey);
-    res.json({ decryptedReceipt });
-});
-
-// Save receipt endpoint
-app.get('/save-receipt', (req, res) => {
-    const { encryptedReceipt, symkeyString, timestamp, txid } = req.query;
-    // TODO save encryptedReceipt and symkeyString to local storage
-    res.json({ success: true });
+    res.json({ symkeyString, timestamp, txid });
 });
 
 // Health check endpoint
@@ -72,8 +82,27 @@ app.listen(PORT, () => {
     console.log(`Express server running on http://localhost:${PORT}`);
 });
 
-global.self = { crypto };
-dotenv.config();
+async function broadcastTransaction(response) {
+    try {
+        // broadcast transaction to overlay
+        // Capture the resulting transaction
+        const tx = Transaction.fromBEEF(response.tx);
+
+        // Lookup a service which accepts this type of token
+        const tb = new TopicBroadcaster(['tm_anytx'], {
+            resolver: overlay,
+            requireAcknowledgmentFromSpecificHostsForTopics: {
+              'ls_anytx': ['https://overlay-us-1.bsvb.tech']
+            }
+          })
+
+        // Send the tx to that overlay.
+        const overlayResponse = await tx.broadcast(tb)
+        console.log("Overlay response: ", overlayResponse);
+    } catch (error) {
+        console.error("Error broadcasting file integrity tx:", error);
+    }
+}
 
 const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
     const rootKey = PrivateKey.fromHex(keyHex)
@@ -92,12 +121,7 @@ const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
     return new WalletClient(wallet)
 }
 
-function encryptJSON(data, key) {
+const encryptJSON = async (data, key) => {
     const jsonString = JSON.stringify(data);
     return key.encrypt(jsonString);
-}
-
-function decryptJSON(encryptedData, key) {
-    const jsonString = key.decrypt(encryptedData, 'utf8');
-    return JSON.parse(jsonString);
 }

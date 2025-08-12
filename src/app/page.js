@@ -155,7 +155,7 @@ export default function Home() {
 
     // Save to blockchain (existing functionality)
     try {
-      const { encryptedReceipt, symkeyString, timestamp, txid } = await fetch("http://localhost:8080/create-receipt", {
+      const { symkeyString, timestamp, txid } = await fetch("http://localhost:8080/create-receipt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,7 +163,7 @@ export default function Home() {
         body: JSON.stringify({ receiptData: receipt }),
       }).then((res) => res.json());
 
-      setReceiptData({ ...receipt, encryptedReceipt, symkeyString, timestamp, txid });
+      setReceiptData({ ...receipt, symkeyString, timestamp, txid });
     } catch (error) {
       console.error("Error saving to blockchain:", error);
       setReceiptData(receipt);
