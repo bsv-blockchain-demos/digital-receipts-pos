@@ -15,13 +15,30 @@ const WALLET_STORAGE_URL = process.env.WALLET_STORAGE_URL;
 
 const overlay = new LookupResolver({
     slapTrackers: ['https://overlay-us-1.bsvb.tech'],
-    additionalHosts: {
+    hostOverrides: {
         'ls_anytx': ['https://overlay-us-1.bsvb.tech']
     }
 });
 
 console.log("SERVER_PRIVATE_KEY", SERVER_PRIVATE_KEY);
 console.log("WALLET_STORAGE_URL", WALLET_STORAGE_URL);
+
+const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
+    const rootKey = PrivateKey.fromHex(keyHex)
+    const keyDeriver = new KeyDeriver(rootKey)
+    const storage = new WalletStorageManager(keyDeriver.identityKey)
+    const services = new Services(chain)
+    const wallet = new Wallet({
+        chain,
+        keyDeriver,
+        storage,
+        services,
+    })
+    const client = new StorageClient(wallet, walletStorageUrl)
+    await storage.addWalletStorageProvider(client)
+    await storage.makeAvailable()
+    return new WalletClient(wallet)
+}
 
 const walletClient = await createWalletClient(SERVER_PRIVATE_KEY, WALLET_STORAGE_URL, 'main');
 console.log("walletClient", walletClient);
@@ -57,6 +74,7 @@ app.post('/create-receipt', async (req, res) => {
                     lockingScript: lockingScript,
                 },
             ],
+            randomizeOutputs: false,
         });
 
         broadcastTransaction(receiptTX);
@@ -91,34 +109,37 @@ async function broadcastTransaction(response) {
         // Lookup a service which accepts this type of token
         const tb = new TopicBroadcaster(['tm_anytx'], {
             resolver: overlay,
-            requireAcknowledgmentFromSpecificHostsForTopics: {
-              'ls_anytx': ['https://overlay-us-1.bsvb.tech']
-            }
           })
 
         // Send the tx to that overlay.
         const overlayResponse = await tx.broadcast(tb)
         console.log("Overlay response: ", overlayResponse);
+        // console.log("Broadcasting transaction to overlay");
+
+        // const headers = {
+        //     'Content-Type': 'application/octet-stream',
+        //     'x-topics': JSON.stringify(['tm_anytx'])
+        // }
+        // let taggedBEEF = {
+        //     beef: response.tx,
+        // }
+
+        // const w = new Utils.Writer()
+        // w.writeVarIntNum(taggedBEEF.beef.length)
+        // w.write(taggedBEEF.beef)
+        // const body = new Uint8Array(w.toArray())
+
+        // const overlayResponse = await fetch('https://overlay-us-1.bsvb.tech/submit', {
+        //     method: 'POST',
+        //     headers,
+        //     body,
+        // });
+        
+        // const data = await overlayResponse.json();
+        // console.log("Overlay response: ", data);
     } catch (error) {
         console.error("Error broadcasting file integrity tx:", error);
     }
-}
-
-const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
-    const rootKey = PrivateKey.fromHex(keyHex)
-    const keyDeriver = new KeyDeriver(rootKey)
-    const storage = new WalletStorageManager(keyDeriver.identityKey)
-    const services = new Services(chain)
-    const wallet = new Wallet({
-        chain,
-        keyDeriver,
-        storage,
-        services,
-    })
-    const client = new StorageClient(wallet, walletStorageUrl)
-    await storage.addWalletStorageProvider(client)
-    await storage.makeAvailable()
-    return new WalletClient(wallet)
 }
 
 const encryptJSON = async (data, key) => {
