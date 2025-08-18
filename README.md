@@ -22,14 +22,13 @@ This demo showcases the core functionality with QR code generation and scanning:
 
 - **Generate Digital Receipts**: Create blockchain-backed digital receipts
 - **QR Code Display**: Visual QR codes for easy sharing and verification
-- **Receipt Scanning**: Scan and verify digital receipts instantly
+- **Receipt Scanning**: Scan and verify digital receipts
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 15, React 19, Tailwind CSS v4
 - **QR Codes**: react-qr-code, react-zxing
 - **Backend**: Express.js server (Node.js)
-- **Future**: Blockchain integration (BSV/Bitcoin SV)
 
 ## 📦 Installation
 
@@ -60,10 +59,10 @@ This demo showcases the core functionality with QR code generation and scanning:
 
 ## 🎯 Usage
 
-1. **Create Receipt**: Click "Create Receipt" to generate a new digital receipt
+1. **Create Receipt**: Put items in your shopping cart and checkout
 2. **View QR Code**: The generated QR code contains the receipt data
-3. **Scan Receipt**: Use "Scan Digital Receipt QR Code" to read existing receipts
-4. **Verify Data**: View the decoded receipt information instantly
+3. **Scan Receipt**: Scan the receipt on the mobile app
+4. **Verify Data**: View the receipt in the mobile app
 
 ## 🌟 Environmental Impact
 
@@ -78,26 +77,3 @@ This demo showcases the core functionality with QR code generation and scanning:
 - ✅ **Zero waste** generation
 - ✅ **Reduced carbon footprint**
 - ✅ **Sustainable business practices**
-
-## 🔮 Future Roadmap
-
-- [ ] **Blockchain Integration**: Full BSV blockchain implementation
-- [ ] **Mobile App**: Native iOS/Android applications
-
-## 🤝 Contributing
-
-We welcome contributions to help build a more sustainable future! Please read our contributing guidelines and submit pull requests.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🌱 Join the Movement
-
-Help us revolutionize the receipt industry and create a more sustainable future. Every digital receipt saves trees, reduces waste, and cuts costs.
-
-**Together, we can make a difference. One receipt at a time.**
-
----
-
-Made with 💚 for a sustainable future
