@@ -29,6 +29,7 @@ RUN adduser -S nextjs -u 1001
 
 # Copy built application
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 # Set permissions
