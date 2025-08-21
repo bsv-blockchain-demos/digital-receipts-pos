@@ -8,6 +8,7 @@ dotenv.config();
 global.self = { crypto };
 
 const app = express();
+const SERVER_URL = process.env.SERVER_URL || "http://192.168.1.204:8080";
 const PORT = process.env.PORT || 8080;
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
@@ -97,7 +98,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Express server running on http://localhost:${PORT}`);
+    console.log(`Express server running on port: ${PORT}`);
 });
 
 async function broadcastTransaction(response) {
@@ -114,29 +115,6 @@ async function broadcastTransaction(response) {
         // Send the tx to that overlay.
         const overlayResponse = await tx.broadcast(tb)
         console.log("Overlay response: ", overlayResponse);
-        // console.log("Broadcasting transaction to overlay");
-
-        // const headers = {
-        //     'Content-Type': 'application/octet-stream',
-        //     'x-topics': JSON.stringify(['tm_anytx'])
-        // }
-        // let taggedBEEF = {
-        //     beef: response.tx,
-        // }
-
-        // const w = new Utils.Writer()
-        // w.writeVarIntNum(taggedBEEF.beef.length)
-        // w.write(taggedBEEF.beef)
-        // const body = new Uint8Array(w.toArray())
-
-        // const overlayResponse = await fetch('https://overlay-us-1.bsvb.tech/submit', {
-        //     method: 'POST',
-        //     headers,
-        //     body,
-        // });
-        
-        // const data = await overlayResponse.json();
-        // console.log("Overlay response: ", data);
     } catch (error) {
         console.error("Error broadcasting file integrity tx:", error);
     }
