@@ -259,7 +259,7 @@ export default function Home() {
             <p className="text-xs text-gray-600 mb-4">{receiptData.footer.message}</p>
             <div className="bg-green-100 p-3 rounded-lg">
               <p className="text-xs text-green-800 font-medium">🌱 With this receipt you save 0.5 g of paper and 0.5 g of CO₂</p>
-              <p className="text-xs text-green-600 mt-1">Let's keep our planet green - Thank you!</p>
+              <p className="text-xs text-green-600 mt-1">Let&apos;s keep our planet green - Thank you!</p>
             </div>
           </div>
 
