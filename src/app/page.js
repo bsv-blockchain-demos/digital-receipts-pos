@@ -155,7 +155,7 @@ export default function Home() {
 
     // Save to blockchain (existing functionality)
     try {
-      const { symkeyString, timestamp, txid } = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/create-receipt`, {
+      const { symkeyString, timestamp, txid } = await fetch('/create-receipt', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
