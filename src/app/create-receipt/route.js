@@ -1,11 +1,9 @@
-import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey, Script, Utils, LookupResolver } from '@bsv/sdk'
+import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey, Script, Utils, LookupResolver, Transaction, TopicBroadcaster } from '@bsv/sdk'
 import { WalletStorageManager, Services, Wallet, StorageClient } from '@bsv/wallet-toolbox-client'
+import { NextResponse } from 'next/server'
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const WALLET_STORAGE_URL = process.env.WALLET_STORAGE_URL;
-
-console.log("SERVER_PRIVATE_KEY", SERVER_PRIVATE_KEY);
-console.log("WALLET_STORAGE_URL", WALLET_STORAGE_URL);
 
 async function broadcastTransaction(response) {
     try {
@@ -57,7 +55,6 @@ const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
 }
 
 const walletClient = await createWalletClient(SERVER_PRIVATE_KEY, WALLET_STORAGE_URL, 'main');
-console.log("walletClient", walletClient);
 
 export async function POST(req) {
     const { receiptData } = await req.json();
@@ -91,12 +88,11 @@ export async function POST(req) {
         broadcastTransaction(receiptTX);
     } catch (error) {
         console.error("Error creating receipt:", error);
-        return new Response({ error: "Failed to create receipt" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to create receipt" }, { status: 500 });
     }
 
-    console.log("receiptTX", receiptTX);
     const txid = receiptTX.txid;
 
     // Send back only the txid and decryption keyring
-    return new Response({ symkeyString, timestamp, txid }, { status: 200 });
+    return NextResponse.json({ symkeyString, timestamp, txid }, { status: 200 });
 }

@@ -155,13 +155,15 @@ export default function Home() {
 
     // Save to blockchain (existing functionality)
     try {
-      const { symkeyString, timestamp, txid } = await fetch('/create-receipt', {
+      const response = await fetch('/create-receipt', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ receiptData: receipt }),
-      }).then((res) => res.json());
+      });
+
+      const { symkeyString, timestamp, txid } = await response.json();
 
       setReceiptData({ ...receipt, symkeyString, timestamp, txid });
     } catch (error) {
@@ -267,7 +269,7 @@ export default function Home() {
           <div className="p-4 border-t">
             <button
               onClick={() => setShowReceipt(false)}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200"
+              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 hover:cursor-pointer text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200"
             >
               Close Receipt
             </button>
