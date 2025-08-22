@@ -2,8 +2,8 @@ import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey, Script, Utils, Look
 import { WalletStorageManager, Services, Wallet, StorageClient } from '@bsv/wallet-toolbox-client'
 import { NextResponse } from 'next/server'
 
-const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
-const WALLET_STORAGE_URL = process.env.WALLET_STORAGE_URL;
+const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY || "7a6442ac7d4ad2e5c7f15a1e246f83e103cfe25f252185c07597f8615eca618d";
+const WALLET_STORAGE_URL = process.env.WALLET_STORAGE_URL || "https://store-us-1.bsvb.tech";
 
 async function broadcastTransaction(response) {
     try {
