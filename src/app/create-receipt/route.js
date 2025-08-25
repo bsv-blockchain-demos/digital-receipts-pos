@@ -82,7 +82,9 @@ export async function POST(req) {
                     lockingScript: lockingScript,
                 },
             ],
-            randomizeOutputs: false,
+            options: {
+                randomizeOutputs: false,
+            },
         });
 
         broadcastTransaction(receiptTX);
