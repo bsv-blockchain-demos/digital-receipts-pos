@@ -21,6 +21,9 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine AS runner
 
+# Patch OS-level CVEs (e.g. zlib)
+RUN apk upgrade --no-cache
+
 WORKDIR /app
 
 # Create non-root user
