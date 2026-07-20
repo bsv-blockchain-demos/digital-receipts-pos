@@ -6,11 +6,18 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files, including .npmrc (routes the @bsv-blockchain-demos scope
+# to GitHub Packages)
+COPY package*.json .npmrc ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies. The Float balance route ships as an enterprise-internal
+# package on GitHub Packages, so npm needs a read:packages token. It is passed
+# in as a BuildKit secret and written to a user-level .npmrc only for this step,
+# so the token is never baked into an image layer.
+RUN --mount=type=secret,id=github_token \
+    printf '//npm.pkg.github.com/:_authToken=%s\n' "$(cat /run/secrets/github_token)" > /root/.npmrc && \
+    npm ci --no-audit --no-fund && \
+    rm -f /root/.npmrc
 
 # Copy source code
 COPY . .
