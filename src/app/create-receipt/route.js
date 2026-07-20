@@ -1,9 +1,6 @@
-import { WalletClient, PrivateKey, KeyDeriver, SymmetricKey, Script, Utils, LookupResolver, Transaction, TopicBroadcaster } from '@bsv/sdk'
-import { WalletStorageManager, Services, Wallet, StorageClient } from '@bsv/wallet-toolbox-client'
+import { SymmetricKey, Script, Utils, LookupResolver, Transaction, TopicBroadcaster } from '@bsv/sdk'
 import { NextResponse } from 'next/server'
-
-const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY || "7a6442ac7d4ad2e5c7f15a1e246f83e103cfe25f252185c07597f8615eca618d";
-const WALLET_STORAGE_URL = process.env.WALLET_STORAGE_URL || "https://store-us-1.bsvb.tech";
+import { getWalletClient } from '@/lib/wallet'
 
 async function broadcastTransaction(response) {
     try {
@@ -36,26 +33,6 @@ const encryptJSON = async (data, key) => {
     return key.encrypt(jsonString);
 }
 
-
-const createWalletClient = async (keyHex, walletStorageUrl, chain) => {
-    const rootKey = PrivateKey.fromHex(keyHex)
-    const keyDeriver = new KeyDeriver(rootKey)
-    const storage = new WalletStorageManager(keyDeriver.identityKey)
-    const services = new Services(chain)
-    const wallet = new Wallet({
-        chain,
-        keyDeriver,
-        storage,
-        services,
-    })
-    const client = new StorageClient(wallet, walletStorageUrl)
-    await storage.addWalletStorageProvider(client)
-    await storage.makeAvailable()
-    return new WalletClient(wallet)
-}
-
-const walletClient = await createWalletClient(SERVER_PRIVATE_KEY, WALLET_STORAGE_URL, 'main');
-
 export async function POST(req) {
     const { receiptData } = await req.json();
 
@@ -63,6 +40,8 @@ export async function POST(req) {
     let receiptTX;
     let symkeyString;
     try {
+        const walletClient = await getWalletClient();
+
         // Encrypt receipt data
         const symmetricKey = SymmetricKey.fromRandom();
         symkeyString = symmetricKey.toHex();
