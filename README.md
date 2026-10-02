@@ -64,3 +64,7 @@ The lint script still invokes `next lint`, which is unavailable in Next.js 16. N
 
 - [src/app/page.js](src/app/page.js): cart, receipt and QR display.
 - [src/app/create-receipt/route.js](src/app/create-receipt/route.js): encryption, transaction creation and overlay submission.
+
+## Licence
+
+**Open BSV Licence v6.** See [LICENSE.txt](LICENSE.txt) for the full terms. The licence applies to this project's original code and documentation and restricts use to the BSV blockchain defined in the licence. Third-party code, assets and referenced standards retain their respective terms.
