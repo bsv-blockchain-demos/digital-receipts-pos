@@ -1,79 +1,66 @@
-# 🌱 Digital Receipts - Blockchain-Powered Sustainable Solution
+# Digital Receipts Point of Sale Demo
 
-A revolutionary digital receipt system leveraging blockchain technology to eliminate paper waste and reduce transaction costs while providing secure, immutable receipt storage.
+A Next.js demonstration that generates a receipt from a sample shopping cart, encrypts the receipt and records it in a BSV transaction. The point-of-sale screen then displays a QR code for retrieving and decrypting the receipt in the companion mobile application.
 
-## 🌍 Mission
+The current implementation uses Next.js route handlers. There is no separate Express server to install or start.
 
-**Save millions of trees. Reduce costs. Secure transactions.**
+## Receipt flow
 
-Traditional paper receipts cost millions of trees per year and generate unnecessary fees for businesses. Our digital receipt solution uses blockchain technology to create a sustainable, cost-effective alternative that benefits both the environment and businesses.
+1. The browser builds an example receipt from the selected products.
+2. `POST /create-receipt` generates a symmetric key and encrypts the receipt JSON.
+3. A server-held wallet creates a one-satoshi `OP_FALSE OP_RETURN` output containing the encrypted data.
+4. The response supplies the transaction ID, timestamp and decryption key for the QR code.
+5. The [Digital Receipts Mobile app](https://github.com/bsv-blockchain-demos/digital-receipts-mobile) provides the separate scanning and viewing interface.
 
-## ✨ Features
+**The QR code contains the decryption key.** Anyone with a copy can attempt to retrieve and decrypt the associated receipt. It contains a transaction reference and key, rather than the complete receipt JSON.
 
-- 🔗 **Blockchain Storage**: Secure, immutable receipt storage on the blockchain
-- 📱 **QR Code Integration**: Easy scanning and sharing of digital receipts
-- 🔒 **Secure**: Cryptographically secure receipt verification
-- 💚 **Eco-Friendly**: Zero paper waste, maximum environmental impact
-- 💰 **Cost-Effective**: Reduced transaction fees and operational costs
+The shopping cart and payment details are demonstration data. Checkout creates the receipt transaction; it does not integrate with a card-payment processor.
 
-## 🚀 Current Implementation
+## Run locally
 
-This demo showcases the core functionality with QR code generation and scanning:
+Use Node.js 22 and npm, a funded mainnet server wallet and a compatible wallet storage provider.
 
-- **Generate Digital Receipts**: Create blockchain-backed digital receipts
-- **QR Code Display**: Visual QR codes for easy sharing and verification
-- **Receipt Scanning**: Scan and verify digital receipts
+```sh
+npm ci
+cp .env.example .env.local
+```
 
-## 🛠️ Technology Stack
+Configure `.env.local`:
 
-- **Frontend**: Next.js 15, React 19, Tailwind CSS v4
-- **QR Codes**: react-qr-code, react-zxing
-- **Backend**: Express.js server (Node.js)
+| Variable | Purpose |
+| --- | --- |
+| `SERVER_PRIVATE_KEY` | Required hexadecimal private key for the server wallet. |
+| `WALLET_STORAGE_URL` | Wallet storage provider, default `https://store-us-1.bsvb.tech`. |
+| `FLOAT_BALANCE_TOKEN` | Optional bearer token enabling `GET /treasury/balance`. Leave unset when unused. |
 
-## 📦 Installation
+```sh
+npm run dev -- --hostname 127.0.0.1
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/kjartan221/digital-receipts.git
-   cd digital-receipts
-   ```
+Open `http://localhost:3000`. Receipt creation uses the server wallet and incurs mainnet fees. The network is fixed to `main` in [src/lib/wallet.js](src/lib/wallet.js); setting a `CHAIN` variable does not change it.
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+Dependencies include a package from GitHub Packages. If installation reports an authentication error, configure an appropriate package-read credential outside the repository.
 
-3. **Start the backend server**
-   ```bash
-   cd server
-   node server.js
-   ```
+## Current limitations
 
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+The receipt-creation route has no application authentication or rate limiting. Anyone able to reach it can request transactions funded by the server wallet. Add suitable access controls before exposing an instance beyond a controlled demonstration.
 
-5. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+The route starts overlay broadcasting without awaiting the result and logs delivery failures. A successful receipt response does not establish that the overlay has indexed the transaction for the mobile reader.
 
-## 🎯 Usage
+The application does not measure environmental savings or provide a general receipt-verification guarantee.
 
-1. **Create Receipt**: Put items in your shopping cart and checkout
-2. **View QR Code**: The generated QR code contains the receipt data
-3. **Scan Receipt**: Scan the receipt on the mobile app
-4. **Verify Data**: View the receipt in the mobile app
+## Build and containers
 
-## 🌟 Environmental Impact
+```sh
+npm run build
+npm start -- --hostname 127.0.0.1
+```
 
-### Paper Receipt Facts:
-- 📊 **3 million trees** are cut down annually for receipt paper
-- 🗑️ **1.5 billion pounds** of receipt waste generated yearly
-- 💧 **21 billion gallons** of water used in receipt production
-- ⚡ **28 billion kWh** of energy consumed for receipt manufacturing
+Next.js produces a server application with standalone output enabled. Runtime wallet configuration is loaded lazily, so a build does not require a funded wallet.
 
-### Our Solution:
-- ✅ **100% paperless** receipt system
-- ✅ **Zero waste** generation
-- ✅ **Reduced carbon footprint**
-- ✅ **Sustainable business practices**
+The [Dockerfile](Dockerfile) expects a BuildKit secret named `github_token`. The supplied Compose build does not declare that secret. Configure it before building containers, and use `.env` for Compose runtime settings. Compose maps host port 3000 to container port 8080.
+
+The lint script still invokes `next lint`, which is unavailable in Next.js 16. No automated test script is defined.
+
+- [src/app/page.js](src/app/page.js): cart, receipt and QR display.
+- [src/app/create-receipt/route.js](src/app/create-receipt/route.js): encryption, transaction creation and overlay submission.
