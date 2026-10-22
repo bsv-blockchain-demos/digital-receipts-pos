@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:22.23.4-alpine AS builder
 
 # Install dependencies for native modules
 RUN apk add --no-cache libc6-compat
@@ -26,7 +26,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:22-alpine AS runner
+FROM node:22.23.4-alpine AS runner
 
 # Patch OS-level CVEs (e.g. zlib)
 RUN apk upgrade --no-cache
